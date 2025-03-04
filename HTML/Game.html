@@ -1,0 +1,779 @@
+<!-- 
+Name: Vincent Hassman
+Description: HTML file with JavaScript that re-implements Assignment5 using function prototypes
+Date: 4/24/2023
+-->
+
+<head>
+	<title>Assignment7</title>
+	<meta charset="UTF-8">
+</head>
+<body>
+<br>
+<canvas id="myCanvas" width="700" height="500" style="border:4px solid #1a409f; background-color: #628ac2;"></canvas>
+
+<script type="text/javascript">
+
+class Sprite
+{
+      //a constructor function for all types of Sprites
+	constructor(x, y, image_url, update_method, identifier )
+	{
+            //initialize all variables that any sprite might need 
+            this.typeIdentifier = identifier; //identifier string for sprite type
+		this.x = x; //x position
+		this.y = y; //y position
+            this.prev_x = this.x; //previous x position
+            this.prev_y = this.x;  //previous y position
+            this.height = 50; //default height 
+            this.width = 50; //default width 
+            this.image = new Image(); //starter image for any Sprite 
+            this.image.src = image_url; //image source 
+            this.update = update_method; //update method type 
+            
+            this.linkDirection = 0; 
+		this.linkImages = []; //an array of images, load them with a for loop
+            this.startingImageRight = 21;
+            this.startingImageLeft = 11;
+            this.startingImageUp = 31;
+            this.startingImageDown = 1; 
+		this.linkMaxImages = 10;
+		const LINK_TOTAL_IMAGES = 40; 
+            this.currentImage = 0; 
+            this.speed = 5; //speed 
+
+            this.boomerangSpeed = 8; 
+            this.boomerangIsActive = false; 
+            this.boomerang_xDirection = 1;
+            this.boomerang_yDirection = 1; 
+            this.potSpeed = 7; 
+            this.potShattered = false; 
+            this.timer = 20; 
+            this.potIsActive = true; 
+            this.pot_xDirection = 0;
+            this.pot_yDirection = 0;
+            //set widths of any sprite type as needed 
+            if (this.typeIdentifier=="pot")
+            {
+                  this.width = 30; this.height = 30; 
+            }
+            if (this.typeIdentifier=="tile" || this.typeIdentifier=="link")
+            {
+                  this.width = 50; this.height = 50; 
+            }
+            if (this.typeIdentifier == "boomerang")
+            {
+                  this.width = 15; this.height = 15; 
+            }
+
+            //fill in the array with all link images 
+            if (this.linkImages.length == 0)
+            {
+                  for (let i = 0; i<40; i++)
+                  {
+                        this.linkImages[i] = new Image(); //initialize a new image 
+                        this.linkImages[i].src = "img/link" + (i+1) + ".png"; //set the image
+                  }
+            }
+	}
+
+	tileUpdate(){	} //empty function 
+	linkUpdate(){	}//empty function 
+
+	moveLink(directionOfTravel) 
+	{
+		//0 = down, 1 = left, 2 = right, 3 = up
+            this.direction = directionOfTravel; 
+            //right
+		if (directionOfTravel==2)
+                  this.x+= this.speed;
+		//left 
+		if (directionOfTravel==1)
+                  this.x-= this.speed;
+		//up
+		if (directionOfTravel==3)
+                  this.y-= this.speed;
+		//down
+		if (directionOfTravel==0)
+                  this.y+= this.speed; 
+	}
+
+      linkSetPrevious()
+      {
+            this.prev_x = this.x;
+            this.prev_y = this.y;
+      }
+
+      linkAvoidObstacle(obstruction, obstruction_x, obstruction_y)
+      {
+            //fix collision with left of another sprite
+            if (this.x + this.width >= obstruction_x && this.prev_x + this.width <= obstruction_x)
+                  this.x = obstruction_x - this.width;  
+            //fix collision with right of another sprite
+            if (this.x <= obstruction_x + obstruction.width && this.prev_x >= obstruction_x + obstruction.width)
+                  this.x = obstruction_x + obstruction.width; 
+            //fix collision with top of another sprite
+            if (this.y + this.height >= obstruction_y && this.prev_y + this.height <= obstruction_y)
+                  this.y = obstruction_y - this.height; 
+            //fix collision with bottom of another sprite
+            if (this.y <= obstruction_y + obstruction.height && this.prev_y >= obstruction_y + obstruction.height)
+                  this.y = obstruction_y + obstruction.height;
+      }
+
+	updateImage()
+	{
+            this.currentImage++; 
+            if(this.currentImage >= this.linkMaxImages)
+                  this.currentImage = 1; //reset to image 1
+	}
+
+	boomerangUpdate()
+	{
+		//move location until collision occurs 
+            this.x += this.boomerang_xDirection*this.boomerangSpeed;
+            this.y += this.boomerang_yDirection*this.boomerangSpeed;
+            return this.boomerangIsActive; 
+	}
+
+      boomerangCollidedWithTile()
+      {
+            this.boomerangIsActive = false; 
+      }
+
+      shatterPot()
+      {
+            this.potShattered = true; 
+      }
+
+	potUpdate()
+	{
+		//display proper image when collision occurs and remove pot after timer
+            if (this.potShattered == false)
+            {
+                  this.x += this.pot_xDirection*this.potSpeed;
+                  this.y += this.pot_yDirection*this.potSpeed;
+            }
+            if (this.potShattered == true && this.timer >0)
+            {
+                 this.timer--;
+            }
+
+            if (this.potShattered==true && this.timer == 0)
+                  return false; 
+
+            return true; 
+	}
+
+      potSlide(direction)
+      {
+            //0 = down, 1 = left, 2 = right, 3 = up
+            if (direction == 0)
+		//slide down
+		{
+			this.pot_xDirection = 0;
+                  this.pot_yDirection = 1;
+		}
+		if (direction == 1)
+		//slide left
+		{
+                  this.pot_xDirection = -1;
+                  this.pot_yDirection = 0;
+		}
+		if (direction == 2)
+		//slide right
+		{
+                  this.pot_xDirection = 1;
+                  this.pot_yDirection = 0;
+		}
+		if (direction == 3)
+		//slide up
+		{
+                  this.pot_xDirection = 0;
+                  this.pot_yDirection = -1;
+		}
+      }
+
+      //toString function
+      toString()
+      {
+            return ("Coordinates: " + this.x + "," + this.y + " Width/height: " + this.width + "," + this.height); 
+      }
+}
+
+class Model
+{
+	constructor()
+	{
+            //create a sprites array 
+	      this.sprites = [];
+            //create a new link
+            this.link = new Sprite(52,52, "img/link1.png", Sprite.prototype.linkUpdate, "link");
+            this.sprites.push(this.link); 
+            //add tiles to array
+            this.sprites.push(new Sprite(1150,250, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(950,250, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1050,850, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(950,700, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(100,750, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(100,700, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(0,0, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(100,0, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(50,0, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(150,0, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(0,50, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(0,100, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(0,150, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(0,200, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(0,250, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(0,300, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(0,350, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(0,400, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(200,0, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(250,0, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(300,0, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(350,0, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(400,0, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(450,0, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(500,0, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(550,0, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(600,0, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(650,0, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(650,50, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(650,100, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(650,150, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(650,200, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(650,250, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(650,400, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(650,450, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(600,450, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(550,450, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(500,450, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(450,450, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(400,450, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(350,450, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(300,450, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(250,450, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(200,450, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(0,450, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(150,450, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(200,400, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(250,400, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(300,400, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(350,400, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(400,400, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(450,400, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(500,400, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(550,400, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(600,400, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(500,150, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(450,150, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(400,150, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(450,200, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(600,250, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(350,200, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(150,100, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(700,250, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(700,400, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(700,200, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(700,150, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(700,100, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(700,50, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(700,0, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(750,0, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(800,0, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(850,0, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(900,0, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(950,0, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1000,0, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1050,0, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1100,0, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1150,0, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1200,0, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1250,0, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1300,0, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1350,0, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1350,50, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1350,100, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1350,150, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1350,200, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1350,250, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1350,300, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1350,350, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1350,400, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1350,450, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1300,450, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1250,450, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1100,450, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1050,450, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1000,450, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(950,450, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(900,450, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(850,450, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(800,450, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(750,450, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(700,450, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(950,300, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(950,350, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(950,400, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(900,400, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(900,350, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(900,300, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(850,350, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(850,400, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(800,400, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(750,400, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(750,200, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(800,150, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(850,100, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(900,50, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(850,50, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(800,100, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(800,50, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(750,50, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(750,100, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(750,150, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1000,300, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1050,350, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1100,400, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1050,400, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1000,400, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1000,350, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1200,200, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1150,100, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1150,150, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1150,200, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1100,150, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1050,150, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1250,500, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1100,500, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1300,500, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1350,500, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1350,550, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1350,600, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1350,650, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1350,700, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1350,800, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1350,850, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1350,900, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1350,750, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1050,500, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1000,500, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(950,500, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(900,500, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(850,500, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(800,500, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(750,500, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(700,500, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(700,550, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(700,600, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(700,650, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(700,800, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(700,850, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(750,900, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(800,900, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(850,900, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(900,900, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(950,900, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1000,900, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1050,900, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1100,900, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1150,900, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1200,900, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1250,900, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1300,900, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(700,900, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(700,950, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(750,950, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(800,950, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(850,950, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(900,950, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(950,950, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1000,950, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1050,950, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1100,950, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1150,950, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1200,950, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1250,950, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1300,950, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1350,950, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1100,850, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1150,850, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1200,850, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1250,850, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1200,800, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1200,750, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1200,700, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(950,750, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1000,800, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(900,750, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(850,750, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(900,650, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1000,700, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1050,650, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1050,700, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1150,800, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(650,650, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(650,800, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(0,500, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(150,500, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(0,550, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(0,600, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(0,650, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(0,700, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(0,750, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(0,800, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(0,850, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(0,900, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(50,900, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(200,500, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(250,500, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(300,500, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(350,500, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(400,500, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(450,500, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(550,500, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(500,500, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(600,500, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(650,500, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(650,550, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(650,600, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(650,850, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(650,900, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(100,900, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(150,900, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(200,900, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(250,900, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(300,900, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(350,900, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(400,900, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(450,900, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(500,900, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(550,900, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(600,900, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(0,950, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(50,950, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(100,950, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(150,950, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(200,950, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(250,950, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(300,950, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(350,950, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(400,950, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(450,950, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(500,950, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(550,950, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(600,950, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(650,950, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(50,700, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(150,750, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(200,750, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(250,800, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(250,700, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(250,750, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(250,650, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(300,750, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(350,700, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(500,550, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(450,600, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(500,600, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(550,600, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(500,650, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(500,700, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(500,750, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(100,650, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(50,650, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(50,600, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(350,250, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(150,50, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(150,150, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(150,200, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(150,250, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(400,250, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(400,200, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(500,100, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(450,50, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(450,100, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(1150,50, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(300,250, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(450,550, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+            this.sprites.push(new Sprite(500,50, "img/tile.png", Sprite.prototype.tileUpdate, "tile"));
+
+            //add pots to array 
+            this.sprites.push(new Sprite(1008,115, "img/pot_normal.png", Sprite.prototype.potUpdate, "pot"));
+            this.sprites.push(new Sprite(1283,118, "img/pot_normal.png", Sprite.prototype.potUpdate, "pot"));
+            this.sprites.push(new Sprite(1283,243, "img/pot_normal.png", Sprite.prototype.potUpdate, "pot"));
+            this.sprites.push(new Sprite(1298,387, "img/pot_normal.png", Sprite.prototype.potUpdate, "pot"));
+            this.sprites.push(new Sprite(1318,598, "img/pot_normal.png", Sprite.prototype.potUpdate, "pot"));
+            this.sprites.push(new Sprite(1274,755, "img/pot_normal.png", Sprite.prototype.potUpdate, "pot"));
+            this.sprites.push(new Sprite(1155,747, "img/pot_normal.png", Sprite.prototype.potUpdate, "pot"));
+            this.sprites.push(new Sprite(1140,593, "img/pot_normal.png", Sprite.prototype.potUpdate, "pot"));
+            this.sprites.push(new Sprite(1057,590, "img/pot_normal.png", Sprite.prototype.potUpdate, "pot"));
+            this.sprites.push(new Sprite(1004,646, "img/pot_normal.png", Sprite.prototype.potUpdate, "pot"));
+            this.sprites.push(new Sprite(938,855, "img/pot_normal.png", Sprite.prototype.potUpdate, "pot"));
+            this.sprites.push(new Sprite(862,607, "img/pot_normal.png", Sprite.prototype.potUpdate, "pot"));
+            this.sprites.push(new Sprite(822,688, "img/pot_normal.png", Sprite.prototype.potUpdate, "pot"));
+            this.sprites.push(new Sprite(386,859, "img/pot_normal.png", Sprite.prototype.potUpdate, "pot"));
+            this.sprites.push(new Sprite(598,840, "img/pot_normal.png", Sprite.prototype.potUpdate, "pot"));
+            this.sprites.push(new Sprite(98,858, "img/pot_normal.png", Sprite.prototype.potUpdate, "pot"));
+            this.sprites.push(new Sprite(189,673, "img/pot_normal.png", Sprite.prototype.potUpdate, "pot"));
+            this.sprites.push(new Sprite(165,715, "img/pot_normal.png", Sprite.prototype.potUpdate, "pot"));
+            this.sprites.push(new Sprite(314,709, "img/pot_normal.png", Sprite.prototype.potUpdate, "pot"));
+            this.sprites.push(new Sprite(241,174, "img/pot_normal.png", Sprite.prototype.potUpdate, "pot"));
+            this.sprites.push(new Sprite(304,73, "img/pot_normal.png", Sprite.prototype.potUpdate, "pot"));
+            this.sprites.push(new Sprite(404,105, "img/pot_normal.png", Sprite.prototype.potUpdate, "pot"));
+            this.sprites.push(new Sprite(589,107, "img/pot_normal.png", Sprite.prototype.potUpdate, "pot"));
+	}
+
+	update()
+	{
+		for(let i = 0; i < this.sprites.length; i++)
+			this.sprites[i].update();
+
+            for (let i = 0; i < this.sprites.length; i++)
+            {
+                  for (let j = 0; j < this.sprites.length; j++)
+                  {
+                        if (this.isColliding(this.sprites[i], this.sprites[j]))
+                        {
+                              //link collides with tile 
+                              if (this.sprites[i].typeIdentifier=="link" && this.sprites[j].typeIdentifier=="tile")
+                                    this.link.linkAvoidObstacle(this.sprites[j], this.sprites[j].x, this.sprites[j].y);
+
+                              //if boomerang collides with tile, remove boomerang
+                              if (this.sprites[i].typeIdentifier=="boomerang" && this.sprites[j].typeIdentifier=="tile")
+                                    this.sprites[i].boomerangCollidedWithTile(); 
+                             
+                              //if boomerang collides with pot, remove boomerang
+                              if (this.sprites[i].typeIdentifier=="boomerang" && this.sprites[j].typeIdentifier=="pot")
+                                    this.sprites[i].boomerangCollidedWithTile();
+                              
+                              //shatter pot if boomerang collides with it, then remove pot after timer
+                              if (this.sprites[i].typeIdentifier=="boomerang" && this.sprites[j].typeIdentifier=="pot")
+                                    this.sprites[j].shatterPot(); 
+
+                              //make pot slide if link walks into pot
+                              if (this.sprites[i].typeIdentifier=="link" && this.sprites[j].typeIdentifier=="pot")
+                                    this.sprites[j].potSlide(this.sprites[i].linkDirection); 
+
+                              //if sliding pot hits tile, shatter pot, then remove the pot after timer
+                              if (this.sprites[i].typeIdentifier=="tile" && this.sprites[j].typeIdentifier=="pot")
+                                    this.sprites[j].shatterPot(); 
+                        }    
+                  }
+                  //remove the sprite if its update function returns false 
+                  if (this.sprites[i].update() == false)
+                        this.sprites.splice(i,1); 
+            }
+	}
+
+      throwBoomerang(x_throwDirection, y_throwDirection)
+      {     
+            //determine coordinates for a new boomerang 
+            let boomerangX = this.link.x+(this.link.width/2);
+            let boomerangY = this.link.y+(this.link.height/2); 
+            let boomerang = new Sprite(boomerangX, boomerangY, "img/boomerang1.png", Sprite.prototype.boomerangUpdate, "boomerang"); 
+            boomerang.boomerang_xDirection = x_throwDirection;
+            boomerang.boomerang_yDirection = y_throwDirection; 
+            boomerang.boomerangIsActive = true; 
+            this.sprites.push(boomerang); //add the boomerang to the sprites array
+      }
+
+      isColliding(a, b)
+      {
+            //clarify the dimensions of an object
+            let a_left = a.x;
+            let a_right = a.x + a.width; 
+            let a_top = a.y;
+            let a_bottom = a.y + a.height; 
+            
+            //detect right collision
+            if (a_right < b.x)
+                  return false; 
+            //detect left collision
+            if (a_left > b.x+b.height)
+                  return false; 
+            //detect bottom collision
+            if (a_bottom < b.y)
+                  return false; 
+            //detect top collision 
+            if (a_top > b.y+b.height)
+                  return false; 
+            return true; //return true if none of the conditions are met, so a collision is occurring 
+      }
+}
+
+class View
+{
+	constructor(model)
+	{
+		this.model = model;
+		this.canvas = document.getElementById("myCanvas");
+		this.scrollPosX = 0;
+		this.scrollPosY = 0; 
+	}
+
+	update()
+	{
+		let ctx = this.canvas.getContext("2d");
+		ctx.clearRect(0, 0, 1000, 500);
+
+		for(let i = 0; i < this.model.sprites.length; i++)
+		{
+			if (this.model.sprites[i].typeIdentifier == "link" && this.model.sprites[i].x >= 700)
+				this.scrollPosX = 700;
+			if (this.model.sprites[i].typeIdentifier == "link" && this.model.sprites[i].y >= 500)
+				this.scrollPosY = 500; 
+			if (this.model.sprites[i].typeIdentifier == "link" && this.model.sprites[i].x < 700)
+				this.scrollPosX = 0;
+			if (this.model.sprites[i].typeIdentifier == "link" && this.model.sprites[i].y < 500)
+				this.scrollPosY = 0; 
+			let sprite = this.model.sprites[i];
+                  if (sprite.typeIdentifier == "link")      
+                  {
+                        let index = sprite.currentImage + sprite.linkDirection * sprite.linkMaxImages;
+                        ctx.drawImage(sprite.linkImages[index], sprite.x-this.scrollPosX, sprite.y-this.scrollPosY, sprite.width, sprite.height); 
+                  }
+                  if (sprite.typeIdentifier == "pot" && sprite.potShattered == false)
+                  {
+                        ctx.drawImage(sprite.image, sprite.x-this.scrollPosX, sprite.y-this.scrollPosY, sprite.width, sprite.height);
+                  }
+                  if (sprite.typeIdentifier == "pot" && sprite.potShattered == true)
+                  {
+                        sprite.image.src = "img/pot_broken.png";
+                        ctx.drawImage(sprite.image, sprite.x-this.scrollPosX, sprite.y-this.scrollPosY, sprite.width, sprite.height);
+                  }
+                  if (sprite.typeIdentifier == "boomerang" || sprite.typeIdentifier == "tile")
+                  {
+                        ctx.drawImage(sprite.image, sprite.x-this.scrollPosX, sprite.y-this.scrollPosY, sprite.width, sprite.height);
+                  }
+		}
+	}
+}
+
+class Controller
+{
+	constructor(model, view)
+	{
+		this.model = model;
+		this.view = view;
+		this.link = null; 
+		this.key_right = false;
+		this.key_left = false;
+		this.key_up = false;
+		this.key_down = false;
+		this.key_ctrl = false; 
+		let self = this;
+		//view.canvas.addEventListener('click', function(event) { self.onClick(event); });
+		document.addEventListener('keydown', function(event) { self.keyDown(event); }, false);
+		document.addEventListener('keyup', function(event) { self.keyUp(event); }, false);
+	}
+	/*onClick(event)
+	{
+		this.model.onclick(event.pageX - this.view.canvas.offsetLeft, event.pageY - this.view.canvas.offsetTop);
+	}*/
+	keyDown(event)
+	{
+		if(event.keyCode == 39) 
+                  this.key_right = true;
+		else if(event.keyCode == 37) 
+                  this.key_left = true;
+		else if(event.keyCode == 38) 
+                  this.key_up = true;
+		else if(event.keyCode == 40) 
+                  this.key_down = true;
+		else if (event.keyCode == 17)
+			this.key_ctrl = false; 
+	}
+
+	keyUp(event)
+	{
+		if(event.keyCode == 39) 
+                  this.key_right = false;
+		else if(event.keyCode == 37) 
+                  this.key_left = false;
+		else if(event.keyCode == 38) 
+                  this.key_up = false;
+		else if(event.keyCode == 40) 
+                  this.key_down = false;
+		else if (event.keyCode == 17)
+			this.key_ctrl = true; 
+	}
+
+	update()
+	{
+            this.model.link.linkSetPrevious();
+            //0 = down, 1 = left, 2 = right, 3 = up
+            if (this.key_right)
+		{
+                  this.model.link.linkDirection = 2;
+			this.model.link.moveLink(2); 
+                  this.model.link.updateImage(); 
+		}
+
+            if (this.key_left)
+		{
+                  this.model.link.linkDirection = 1; 
+			this.model.link.moveLink(1);
+                  this.model.link.updateImage(); 
+		}
+
+            if (this.key_up)
+		{
+                  this.model.link.linkDirection = 3; 
+			this.model.link.moveLink(3);
+                  this.model.link.updateImage(); 
+		}
+
+            if (this.key_down)
+		{
+                  this.model.link.linkDirection = 0;
+			this.model.link.moveLink(0);
+                  this.model.link.updateImage(); 
+		}
+            if (this.key_ctrl)
+            {
+                  //0 = down, 1 = left, 2 = right, 3 = up
+                  //throw right
+                  if (this.model.link.direction == 2)
+                        this.model.throwBoomerang(1,0); 
+
+                  //throw left 
+                  if (this.model.link.direction == 1)
+                        this.model.throwBoomerang(-1,0);
+
+                  //throw up
+                  if (this.model.link.direction == 3)
+                        this.model.throwBoomerang(0,-1);
+
+                  //throw down
+                  if (this.model.link.direction == 0)
+                        this.model.throwBoomerang(0,1); 
+
+                  this.key_ctrl = false; 
+            }
+	}
+}
+
+class Game
+{
+	constructor()
+	{
+		this.model = new Model();
+		this.view = new View(this.model);
+		this.controller = new Controller(this.model, this.view);
+	}
+
+	onTimer()
+	{
+		this.controller.update();
+		this.model.update();
+		this.view.update();
+	}
+}
+
+let game = new Game();
+let timer = setInterval(function() { game.onTimer(); }, 40);
+
+</script>
+
+</body>
